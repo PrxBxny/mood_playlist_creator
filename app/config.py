@@ -4,8 +4,12 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class BaseConfig:
-    SPOTIFY_CLIENT_ID: str = os.getenv("SPOTIFY_CLIENT_ID", "")
-    SPOTIFY_CLIENT_SECRET: str = os.getenv("SPOTIFY_CLIENT_SECRET", "")
+    LASTFM_API_KEY: str = os.getenv("LASTFM_API_KEY", "")
+    LASTFM_SECRET: str = os.getenv("LASTFM_SECRET", "")
+    LASTFM_API_BASE_URL: str = "https://ws.audioscrobbler.com/2.0/"
+
+    AI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+    AI_MODEL: str = "gemini-3-flash-preview"
 
 
 @dataclass(frozen=True)

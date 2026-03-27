@@ -1,4 +1,4 @@
-from app.models.schemes import User
+from app.models.user_schemas import User
 
 def get_users() -> list[User]:
     # ... логика обращения к бд и т.д.
