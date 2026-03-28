@@ -8,8 +8,8 @@ from app.services.music_service import MusicService
 
 cfg = get_config()
 music_service = MusicService(config=cfg)
-mood_request = MoodRequest(mood_tags=["phonk", "agressive"])
+mood_request = MoodRequest(mood_tags=["phonk", "agressive", "lo-fi"])
 
-tracks = music_service.get_tracks(mood=mood_request, limit=6)
+tracks = music_service.get_tracks(mood=mood_request, limit=4)
 for track in tracks:
     print(track.model_dump())

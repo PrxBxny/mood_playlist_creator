@@ -49,13 +49,13 @@ class LastfmParams(BaseModel):
 class TrackResponse(BaseModel):
     name: str
     artist: str
-    # lastfm_url: str                # Last.fm даёт ссылку на страницу трека
-    # image_url: Optional[str]       # Last.fm даёт обложку (несколько размеров)
-    # listeners: Optional[int]       # Last.fm возвращает количество слушателей
-    # mbid: Optional[str]            # MusicBrainz ID (Last.fm его возвращает)
+    duration: int
+    lastfm_url: str
+
 
 # Итоговый ответ API
 class PlaylistResponse(BaseModel):
     tracks: list[TrackResponse]
-    explanation: str
-    mood_summary: str
+    duration: int
+    # explanation: str
+    # mood_summary: str

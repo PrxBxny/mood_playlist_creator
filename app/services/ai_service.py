@@ -2,44 +2,36 @@ from google import genai
 from google.genai import types
 
 from app.config import BaseConfig
+from app.models.schemas import MoodRequest
 from app.utils.exceptions import AIServiceError
+from app.prompts.ai_tags import MOOD_TAGS_PROMPT
 
 
-
-SYSTEM_PROMPT = """
-Ты — эксперт по музыкальной метадате Last.fm. Твоя задача: переводить запросы пользователя в список поисковых тегов (от 1 до 5 слов).
-Правила формирования ответа:
-1. Приоритет жанров: Если в запросе явно или косвенно упоминается жанр (например, "гитары" -> rock, "биты" -> hip-hop), он должен стоять на первом месте.
-2. Количество: Строго от 1 до 5 тегов.
-3. Формат: Только английский язык, через запятую, без лишнего текста и кавычек.
-4. Запреты: НЕ используй слова music, songs, playlist, cool, good, best.
-5. Используй наиболее популярные теги из сообщества Last.fm"
-"""
 
 class AIService:
     def __init__(self, config: BaseConfig):
         self._client = genai.Client(api_key=config.AI_API_KEY)
         self._model = config.AI_MODEL
 
-    def prompt_to_text(self, user_prompt: str) -> list[str]:
+    def prompt_to_mood_tags(self, user_prompt: str) -> MoodRequest:
         try:
             response = self._client.models.generate_content(
                 model=self._model,
                 config=types.GenerateContentConfig(
-                    system_instruction=SYSTEM_PROMPT,
+                    system_instruction=MOOD_TAGS_PROMPT, # промпт из prompts/ai_tags
                     temperature=0.3,
                 ),
                 contents=[user_prompt]
             )
-
 
             if not response.text:
                 raise AIServiceError("AI вернул пустой список")
 
             tags_raw = response.text.strip()
             tags_list = [tag.strip().lower() for tag in tags_raw.split(",")]
+            mood = MoodRequest(mood_tags=tags_list)
 
-            return tags_list
+            return mood
 
         except AIServiceError:
             raise  # перебрасываем наши исключения как есть

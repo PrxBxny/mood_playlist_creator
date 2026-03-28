@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, current_app, request, jsonify
 from pydantic import ValidationError
 
 from app.models.schemas import PlaylistRequest
@@ -11,20 +11,19 @@ playlist_bp = Blueprint("playlist", __name__, url_prefix="/playlist")
 def ping():
     return jsonify({"message": "playlist router is alive"}), 200
 
+def _service():
+    return current_app.extensions["playlist"]
+
 @playlist_bp.route("/generate", methods=["POST"])
 def generate():
     try:
         #.model_validate - сразу сопоставление json с моделью, может выкинуть ValidationError
         data = PlaylistRequest.model_validate(request.get_json(silent=True) or {})
 
-        # result = playlist_service.generate(data):
-            # tags = передать data в ai и получить теги
-            # playlist = передать теги в lastfm и получить плейлист
-            # return json список с плейлистом и треками
+        playlist_service = _service()
+        result = playlist_service.generate(data.prompt, data.number_of_tracks)
 
-        # return jsonify(result.model_dump()), 200
-
-        return jsonify({"заглушка": "rarrrr"}), 200
+        return jsonify(result.model_dump()), 200
 
 
     except ValidationError as e:

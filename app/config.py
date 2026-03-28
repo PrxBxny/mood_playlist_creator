@@ -9,7 +9,7 @@ class BaseConfig:
     LASTFM_API_BASE_URL: str = "https://ws.audioscrobbler.com/2.0/"
 
     AI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
-    AI_MODEL: str = "gemini-3-flash-preview"
+    AI_MODEL: str = "gemini-2.5-flash-lite"
 
 
 @dataclass(frozen=True)
