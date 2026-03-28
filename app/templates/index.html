@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор плейлиста по настроению</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f9f9f9;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, button {
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+            border: none;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .number-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .number-group input {
+            flex: 1;
+        }
+        .result {
+            margin-top: 20px;
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+        }
+        .track {
+            background: white;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .track-name {
+            font-weight: bold;
+        }
+        .track-artist {
+            color: #666;
+            font-size: 0.9em;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            font-style: italic;
+            color: #666;
+        }
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎵 Генератор плейлиста по настроению</h1>
+    
+    <div class="input-group">
+        <label for="prompt">Опиши настроение или ситуацию:</label>
+        <input type="text" id="prompt" placeholder="Например: грустный вечер, энергичная тренировка, романтическое свидание" />
+    </div>
+
+    <div class="input-group">
+        <label for="tracksCount">Количество треков:</label>
+        <input type="number" id="tracksCount" min="1" max="20" value="5" />
+    </div>
+
+    <button id="generateBtn">Сгенерировать плейлист</button>
+
+    <div id="loading" class="loading hidden">⏳ Генерируем плейлист... Подождите немного.</div>
+    <div id="error" class="error hidden"></div>
+
+    <div id="result" class="result hidden">
+        <h3>Ваш плейлист:</h3>
+        <div id="tracksList"></div>
+    </div>
+
+    <script>
+        const promptInput = document.getElementById('prompt');
+        const tracksCountInput = document.getElementById('tracksCount');
+        const generateBtn = document.getElementById('generateBtn');
+        const loadingDiv = document.getElementById('loading');
+        const errorDiv = document.getElementById('error');
+        const resultDiv = document.getElementById('result');
+        const tracksListDiv = document.getElementById('tracksList');
+
+        generateBtn.addEventListener('click', async () => {
+            const prompt = promptInput.value.trim();
+            const numberOfTracks = parseInt(tracksCountInput.value, 10);
+
+            if (!prompt) {
+                showError('Пожалуйста, введите описание настроения.');
+                return;
+            }
+
+            if (isNaN(numberOfTracks) || numberOfTracks < 1) {
+                showError('Количество треков должно быть положительным числом.');
+                return;
+            }
+
+            // Скрыть старые результаты и ошибки
+            hideError();
+            resultDiv.classList.add('hidden');
+            tracksListDiv.innerHTML = '';
+
+            // Показать загрузку
+            generateBtn.disabled = true;
+            loadingDiv.classList.remove('hidden');
+
+            try {
+                const response = await fetch('/playlist/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        prompt: prompt,
+                        number_of_tracks: numberOfTracks
+                    }),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    // Обработка ошибок от сервера
+                    const errorMsg = data.error || 'Неизвестная ошибка';
+                    throw new Error(errorMsg);
+                }
+
+                // Отобразить плейлист
+                displayPlaylist(data);
+            } catch (err) {
+                showError(err.message);
+            } finally {
+                generateBtn.disabled = false;
+                loadingDiv.classList.add('hidden');
+            }
+        });
+
+        function displayPlaylist(data) {
+            // Предполагаем, что ответ содержит поле "tracks" — массив объектов с name и artist
+            // Если структура другая, можно адаптировать под реальный формат
+            let tracks = [];
+            if (data.tracks && Array.isArray(data.tracks)) {
+                tracks = data.tracks;
+            } else if (Array.isArray(data)) {
+                tracks = data;
+            } else {
+                // Если формат неизвестен, попробуем показать весь ответ как текст (на всякий случай)
+                tracksListDiv.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                resultDiv.classList.remove('hidden');
+                return;
+            }
+
+            if (tracks.length === 0) {
+                tracksListDiv.innerHTML = '<p>Плейлист пуст. Попробуйте изменить запрос.</p>';
+            } else {
+                const listHtml = tracks.map(track => `
+                    <div class="track">
+                        <div class="track-name">${escapeHtml(track.name || 'Без названия')}</div>
+                        <div class="track-artist">${escapeHtml(track.artist || 'Неизвестный исполнитель')}</div>
+                    </div>
+                `).join('');
+                tracksListDiv.innerHTML = listHtml;
+            }
+            resultDiv.classList.remove('hidden');
+        }
+
+        function showError(message) {
+            errorDiv.textContent = message;
+            errorDiv.classList.remove('hidden');
+        }
+
+        function hideError() {
+            errorDiv.classList.add('hidden');
+            errorDiv.textContent = '';
+        }
+
+        // Простая защита от XSS
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+    </script>
+</body>
+</html>
